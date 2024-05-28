@@ -113,11 +113,43 @@ const uploadCsv = async (req, res) => {
     }
 };
 const viewBook = async(req,res) => {
-
+    try{
+        const id = req.user.id;
+        let  keys = Object.keys(req.body);
+        let values = {}
+        for(let i=0;i<keys.length;i++){
+            values[keys[i]] = req.body[keys[i]];
+        }
+        values["user_id"] = id;
+        console.log(values)
+        const books = await Book.findAll({ where : values });
+        if(books.length !== 0){
+            let msg = ""
+            for(let i=0;i<books.length;i++){
+                msg +=  `{
+                                id : ${books[i]["dataValues"]["id"]},
+                                title : ${books[i]["dataValues"]["title"]},
+                                author : ${books[i]["dataValues"]["author"]},
+                                published_date : ${books[i]["dataValues"]["published_date"]},
+                                price : ${books[i]["dataValues"]["price"]},
+                                user_id : ${books[i]["dataValues"]["user_id"]},
+                },
+                        `  
+            }
+            res.status(200).send(msg);
+        }
+        else{
+            res.status(400).send("No Book Found..")
+        }
+    }
+    catch{
+        console.error('Error fetching books:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 }
 const viewAllBooks = async (req, res) => {
     try {
-        const id = req.user.id
+        const id = req.user.id;
         const books = await Book.findAll({ where: { user_id: id } });
         res.status(200).json(books);
     } catch (error) {
