@@ -5,6 +5,7 @@ const dotenv = require('dotenv').config();
 const { postgreSQLConnect } = require("./database.js");
 const loginRoutes = require("./routes/login.routes");
 const sellerRoutes = require("./routes/seller.routes.js");
+const buyerRoutes = require("./routes/buyer.routes.js");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 })
 app.use('/api', loginRoutes);
 app.use('/api', sellerRoutes);
+app.use('/api', buyerRoutes);
 
 postgreSQLConnect();
 server.listen(PORT, () => console.log(`Server started on port ${PORT}`));

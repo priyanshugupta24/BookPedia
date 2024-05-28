@@ -115,31 +115,37 @@ const uploadCsv = async (req, res) => {
 const viewBook = async(req,res) => {
     try{
         const id = req.user.id;
-        let  keys = Object.keys(req.body);
-        let values = {}
-        for(let i=0;i<keys.length;i++){
-            values[keys[i]] = req.body[keys[i]];
-        }
-        values["user_id"] = id;
-        console.log(values)
-        const books = await Book.findAll({ where : values });
-        if(books.length !== 0){
-            let msg = ""
-            for(let i=0;i<books.length;i++){
-                msg +=  `{
-                                id : ${books[i]["dataValues"]["id"]},
-                                title : ${books[i]["dataValues"]["title"]},
-                                author : ${books[i]["dataValues"]["author"]},
-                                published_date : ${books[i]["dataValues"]["published_date"]},
-                                price : ${books[i]["dataValues"]["price"]},
-                                user_id : ${books[i]["dataValues"]["user_id"]},
-                },
-                        `  
+        const is_seller = req.user.is_seller;
+        if(is_seller){
+            let  keys = Object.keys(req.body);
+            let values = {}
+            for(let i=0;i<keys.length;i++){
+                values[keys[i]] = req.body[keys[i]];
             }
-            res.status(200).send(msg);
+            values["user_id"] = id;
+            console.log(values)
+            const books = await Book.findAll({ where : values });
+            if(books.length !== 0){
+                let msg = ""
+                for(let i=0;i<books.length;i++){
+                    msg +=  `{
+                                    id : ${books[i]["dataValues"]["id"]},
+                                    title : ${books[i]["dataValues"]["title"]},
+                                    author : ${books[i]["dataValues"]["author"]},
+                                    published_date : ${books[i]["dataValues"]["published_date"]},
+                                    price : ${books[i]["dataValues"]["price"]},
+                                    user_id : ${books[i]["dataValues"]["user_id"]},
+                    },
+                            `  
+                }
+                res.status(200).send(msg);
+            }
+            else{
+                res.status(400).send("No Book Found..")
+            }
         }
         else{
-            res.status(400).send("No Book Found..")
+            res.status(400).send("Only For Sellers..");
         }
     }
     catch{
@@ -150,8 +156,14 @@ const viewBook = async(req,res) => {
 const viewAllBooks = async (req, res) => {
     try {
         const id = req.user.id;
-        const books = await Book.findAll({ where: { user_id: id } });
-        res.status(200).json(books);
+        const is_seller = req.user.is_seller;
+        if(is_seller){
+            const books = await Book.findAll({ where: { user_id: id } });
+            res.status(200).json(books);
+        }
+        else{
+            res.status(400).send("Only For Sellers..")
+        }
     } catch (error) {
         console.error('Error fetching books:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -162,25 +174,32 @@ const editBooks = async (req, res) => {
         const userId = req.user.id;
         const getId = req.body.id;
         const dataToBeChanged = req.body.data;
-        let msg =  'Failed for : '
-        for(let i=0;i<getId.length;i++){
-            let  book = await Book.findAll({ where: { user_id: userId,id:getId[i] } });
-            if(book.length == 0){
-                msg += `id ${getId[i]},`
-                continue;
+        const is_seller = req.user.is_seller;
+        if(is_seller){
+            
+            let msg =  'Failed for : '
+            for(let i=0;i<getId.length;i++){
+                let  book = await Book.findAll({ where: { user_id: userId,id:getId[i] } });
+                if(book.length == 0){
+                    msg += `id ${getId[i]},`
+                    continue;
+                }
+                let  { id,title,author,published_date,price } = book[0]["dataValues"];
+                const dataIndi = {id,title,author,published_date,price}
+                const dataKeys = Object.keys(dataToBeChanged[i]);
+                for(let j=0;j<dataKeys.length;j++){
+                    dataIndi[dataKeys[j]] = dataToBeChanged[i][dataKeys[j]]
+                }
+                const updated = await Book.update(
+                    dataIndi,
+                    {where: { user_id: userId,id:getId[i] }}
+                );
             }
-            let  { id,title,author,published_date,price } = book[0]["dataValues"];
-            const dataIndi = {id,title,author,published_date,price}
-            const dataKeys = Object.keys(dataToBeChanged[i]);
-            for(let j=0;j<dataKeys.length;j++){
-                dataIndi[dataKeys[j]] = dataToBeChanged[i][dataKeys[j]]
-            }
-            const updated = await Book.update(
-                dataIndi,
-                {where: { user_id: userId,id:getId[i] }}
-            );
+            res.status(200).json(`${msg}`);
         }
-        res.status(200).json(`${msg}`);
+        else{
+            res.status(400).send("Only For Sellers..")
+        }
     } catch (error) {
         console.error('Error Updating books:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -190,18 +209,24 @@ const deleteBooks = async (req, res) => {
     try {
         const userId = req.user.id;
         const getId = req.body.id;
+        const is_seller = req.user.is_seller;
         let msg =  'Failed for : '
         let msg2 = "Success for : "
-        for(let i=0;i<getId.length;i++){
-            console.log(userId,getId[i])
-            const deleted = await Book.destroy({ where: { user_id: userId, id: getId[i] } });
-            if (deleted) {
-                msg2 += `id ${getId[i]},`
-            } else {
-                msg += `id ${getId[i]},`
+        if(is_seller){
+            for(let i=0;i<getId.length;i++){
+                console.log(userId,getId[i])
+                const deleted = await Book.destroy({ where: { user_id: userId, id: getId[i] } });
+                if (deleted) {
+                    msg2 += `id ${getId[i]},`
+                } else {
+                    msg += `id ${getId[i]},`
+                }
             }
+            res.status(200).json(`${msg} and ${msg2}`);
         }
-        res.status(200).json(`${msg} and ${msg2}`);
+        else{
+            res.status(400).send("Only For Sellers..")
+        }
     } catch (error) {
         console.error('Error Updating books:', error);
         res.status(500).json({ error: 'Internal server error' });
