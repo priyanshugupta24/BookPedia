@@ -4,4 +4,13 @@ title VARCHAR(255) NOT NULL UNIQUE,
 author VARCHAR(255) NOT NULL,
 published_date DATE,
 price REAL DEFAULT 10.99,
-user_id INTEGER REFERENCES users(id) ON DELETE CASCADE);
+user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE, -- Makes the 'name' field unique
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    is_seller BOOLEAN DEFAULT FALSE
+);
